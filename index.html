@@ -2,7 +2,10 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e11">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>FANTAPROF — Il Fantacalcio dei Professori</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;900&family=Archivo+Black&display=swap');
@@ -19,173 +22,218 @@
     --text:#f4f7f9;
     --dim:#8b98a5;
     --radius:16px;
+    --sat:env(safe-area-inset-top,0px);
+    --sab:env(safe-area-inset-bottom,0px);
   }
-  *{margin:0;padding:0;box-sizing:border-box;font-family:'Archivo',sans-serif}
-  body{background:var(--bg);color:var(--text);min-height:100vh}
-  button{cursor:pointer;font-family:inherit}
-  input,select{font-family:inherit}
-  ::-webkit-scrollbar{width:8px}
-  ::-webkit-scrollbar-track{background:var(--bg)}
-  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Archivo',sans-serif;
+    -webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);min-height:100vh;overscroll-behavior-y:none}
+  button{cursor:pointer;font-family:inherit;touch-action:manipulation}
+  input,select{font-family:inherit;font-size:16px} /* evita zoom iOS */
+  ::-webkit-scrollbar{width:0;height:0}
 
   /* ============ AUTH ============ */
-  .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;
-    background:radial-gradient(ellipse at 30% 20%,#1b2530 0%,var(--bg) 60%);padding:20px}
+  .auth-wrap{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 30% 15%,#1b2530 0%,var(--bg) 65%);
+    padding:20px;padding-top:calc(20px + var(--sat))}
   .auth-card{background:var(--card);border:1px solid var(--line);border-radius:24px;
-    padding:48px 40px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
-  .auth-logo{font-family:'Archivo Black',sans-serif;font-size:2.6rem;color:var(--fluo);
+    padding:40px 26px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .auth-logo{font-family:'Archivo Black',sans-serif;font-size:2.4rem;color:var(--fluo);
     letter-spacing:-2px;text-align:center;line-height:1}
-  .auth-sub{text-align:center;color:var(--dim);margin:8px 0 32px;font-size:.95rem}
-  .auth-tabs{display:flex;background:var(--bg2);border-radius:12px;padding:4px;margin-bottom:24px}
-  .auth-tabs button{flex:1;padding:10px;border:none;background:transparent;color:var(--dim);
-    font-weight:700;border-radius:9px;transition:.2s}
+  .auth-sub{text-align:center;color:var(--dim);margin:8px 0 28px;font-size:.9rem;line-height:1.4}
+  .auth-tabs{display:flex;background:var(--bg2);border-radius:12px;padding:4px;margin-bottom:22px}
+  .auth-tabs button{flex:1;padding:13px;border:none;background:transparent;color:var(--dim);
+    font-weight:700;border-radius:9px;transition:.2s;font-size:.95rem}
   .auth-tabs button.on{background:var(--fluo);color:#111}
-  .field{margin-bottom:16px}
-  .field label{display:block;font-size:.75rem;font-weight:700;text-transform:uppercase;
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;
     letter-spacing:1px;color:var(--dim);margin-bottom:6px}
-  .field input{width:100%;padding:14px 16px;background:var(--bg2);border:1px solid var(--line);
-    border-radius:12px;color:var(--text);font-size:1rem;outline:none;transition:border .2s}
+  .field input{width:100%;padding:15px 16px;background:var(--bg2);border:1px solid var(--line);
+    border-radius:12px;color:var(--text);outline:none;transition:border .2s}
   .field input:focus{border-color:var(--fluo)}
-  .btn-primary{width:100%;padding:15px;background:var(--fluo);color:#111;border:none;
-    border-radius:12px;font-weight:900;font-size:1rem;letter-spacing:.5px;transition:.2s}
-  .btn-primary:hover{background:var(--fluo-dark);transform:translateY(-1px)}
+  .btn-primary{width:100%;padding:16px;background:var(--fluo);color:#111;border:none;
+    border-radius:12px;font-weight:900;font-size:1rem;letter-spacing:.5px;transition:.15s}
+  .btn-primary:active{transform:scale(.97);background:var(--fluo-dark)}
   .auth-error{background:rgba(255,71,87,.12);border:1px solid var(--red);color:var(--red);
-    padding:10px 14px;border-radius:10px;font-size:.85rem;margin-bottom:16px;display:none}
+    padding:11px 14px;border-radius:10px;font-size:.85rem;margin-bottom:14px;display:none}
 
-  /* ============ LAYOUT ============ */
-  .topbar{position:sticky;top:0;z-index:50;background:rgba(11,14,17,.9);backdrop-filter:blur(12px);
-    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:24px;padding:0 24px;height:64px}
-  .brand{font-family:'Archivo Black',sans-serif;font-size:1.4rem;color:var(--fluo);letter-spacing:-1px;white-space:nowrap}
-  .nav{display:flex;gap:4px;flex:1;overflow-x:auto}
-  .nav button{background:none;border:none;color:var(--dim);font-weight:700;font-size:.9rem;
-    padding:10px 16px;border-radius:10px;white-space:nowrap;transition:.2s}
-  .nav button:hover{color:var(--text)}
-  .nav button.on{color:var(--fluo);background:rgba(200,243,29,.08)}
-  .user-chip{display:flex;align-items:center;gap:12px}
-  .user-credits{background:var(--fluo);color:#111;font-weight:900;padding:6px 14px;border-radius:50px;font-size:.85rem}
-  .user-name{font-weight:700;font-size:.9rem}
-  .logout{background:var(--card2);border:1px solid var(--line);color:var(--dim);padding:8px 14px;
-    border-radius:10px;font-size:.8rem;font-weight:700}
-  .logout:hover{color:var(--red);border-color:var(--red)}
-  .page{max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+  /* ============ TOPBAR (mobile compact) ============ */
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(11,14,17,.92);backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:0 16px;height:calc(56px + var(--sat));padding-top:var(--sat)}
+  .brand{font-family:'Archivo Black',sans-serif;font-size:1.25rem;color:var(--fluo);letter-spacing:-1px}
+  .top-right{display:flex;align-items:center;gap:8px}
+  .user-credits{background:var(--fluo);color:#111;font-weight:900;padding:6px 12px;
+    border-radius:50px;font-size:.8rem;white-space:nowrap}
+  .logout{background:var(--card2);border:1px solid var(--line);color:var(--dim);
+    width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+  .logout:active{color:var(--red);border-color:var(--red)}
+
+  /* ============ BOTTOM TAB BAR ============ */
+  .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:60;
+    background:rgba(14,18,23,.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border-top:1px solid var(--line);display:flex;
+    padding-bottom:var(--sab);height:calc(64px + var(--sab))}
+  .tabbar button{flex:1;background:none;border:none;color:var(--dim);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+    transition:color .2s;padding-top:6px}
+  .tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;
+    stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:.2s}
+  .tabbar button.on{color:var(--fluo)}
+  .tabbar button.on svg{filter:drop-shadow(0 0 6px rgba(200,243,29,.5))}
+  .tabbar button:active{transform:scale(.92)}
+
+  /* ============ PAGINA ============ */
+  .page{max-width:640px;margin:0 auto;padding:18px 14px calc(90px + var(--sab))}
+  .section-title{font-family:'Archivo Black',sans-serif;font-size:1.5rem;margin-bottom:4px;letter-spacing:-.5px}
+  .section-sub{color:var(--dim);margin-bottom:20px;font-size:.88rem;line-height:1.4}
 
   /* ============ HERO ============ */
-  .hero{position:relative;border-radius:24px;overflow:hidden;border:1px solid var(--line);
-    background:linear-gradient(135deg,#141b22 0%,#0b0e11 100%);margin-bottom:32px;min-height:420px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px}
+  .hero{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line);
+    background:linear-gradient(160deg,#141b22 0%,#0b0e11 100%);margin-bottom:20px;
+    display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 16px 24px}
   .hero::before{content:'';position:absolute;inset:0;
-    background:radial-gradient(circle at 50% 120%,rgba(200,243,29,.12),transparent 60%)}
-  .hero-title{font-family:'Archivo Black',sans-serif;font-size:clamp(3rem,9vw,6.5rem);
-    letter-spacing:-3px;color:var(--text);position:relative;z-index:2;line-height:.95}
+    background:radial-gradient(circle at 50% 115%,rgba(200,243,29,.14),transparent 60%)}
+  .hero-title{font-family:'Archivo Black',sans-serif;font-size:clamp(2.6rem,13vw,4rem);
+    letter-spacing:-2px;position:relative;z-index:2;line-height:.95}
   .hero-title span{color:var(--fluo)}
-  .hero-tag{color:var(--dim);font-weight:600;margin-top:10px;position:relative;z-index:2;font-size:1.05rem}
-  .hero-scene{position:relative;z-index:2;display:flex;align-items:flex-end;gap:clamp(30px,8vw,90px);margin-top:36px;height:150px}
-  .actor{display:flex;flex-direction:column;align-items:center;gap:6px}
-  .actor .emoji{font-size:4rem;filter:drop-shadow(0 8px 20px rgba(0,0,0,.5))}
-  .actor .label{background:var(--card2);border:1px solid var(--line);padding:4px 12px;border-radius:50px;
-    font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--dim)}
-  .chair{position:absolute;font-size:2.4rem;left:calc(50% - 130px);bottom:110px;
-    animation:chairfly 2.2s ease-in-out infinite;z-index:3}
+  .hero-tag{color:var(--dim);font-weight:600;margin-top:8px;position:relative;z-index:2;
+    font-size:.82rem;line-height:1.45;max-width:300px}
+  .hero-scene{position:relative;z-index:2;display:flex;align-items:flex-end;
+    gap:70px;margin-top:22px;height:120px}
+  .actor{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .actor .emoji{font-size:3rem;filter:drop-shadow(0 8px 16px rgba(0,0,0,.5))}
+  .actor .label{background:var(--card2);border:1px solid var(--line);padding:3px 10px;
+    border-radius:50px;font-size:.6rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:1px;color:var(--dim);white-space:nowrap}
+  .chair{position:absolute;font-size:1.9rem;left:calc(50% - 100px);bottom:82px;z-index:3;
+    animation:chairfly 2.2s ease-in-out infinite}
   @keyframes chairfly{
     0%{transform:translate(0,0) rotate(0deg)}
-    50%{transform:translate(90px,-70px) rotate(300deg)}
-    60%{transform:translate(100px,-60px) rotate(340deg)}
+    50%{transform:translate(70px,-55px) rotate(300deg)}
+    60%{transform:translate(78px,-48px) rotate(340deg)}
     100%{transform:translate(0,0) rotate(0deg)}
   }
-  .wall-impact{position:absolute;right:calc(50% - 190px);bottom:95px;font-size:2rem;
+  .wall-impact{position:absolute;right:calc(50% - 150px);bottom:72px;font-size:1.6rem;
     animation:impact 2.2s ease-in-out infinite;opacity:0}
   @keyframes impact{0%,45%{opacity:0;transform:scale(.5)}52%{opacity:1;transform:scale(1.3)}70%{opacity:0}}
-  .pan{position:absolute;left:calc(50% + 30px);bottom:120px;font-size:2rem;
-    animation:panflip 1.4s ease-in-out infinite;z-index:3}
-  @keyframes panflip{0%,100%{transform:rotate(0)}50%{transform:rotate(-35deg) translateY(-12px)}}
+  .pan{position:absolute;left:calc(50% + 22px);bottom:92px;font-size:1.6rem;z-index:3;
+    animation:panflip 1.4s ease-in-out infinite}
+  @keyframes panflip{0%,100%{transform:rotate(0)}50%{transform:rotate(-35deg) translateY(-10px)}}
   .sinno-throw{animation:throw 2.2s ease-in-out infinite;display:inline-block}
   @keyframes throw{0%,100%{transform:rotate(0)}45%{transform:rotate(-14deg)}}
 
-  /* ============ SEZIONI ============ */
-  .grid-2{display:grid;grid-template-columns:2fr 1fr;gap:24px}
-  @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
-  .panel h3{font-size:1.05rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;
-    margin-bottom:18px;display:flex;align-items:center;gap:10px}
-  .panel h3::before{content:'';width:4px;height:18px;background:var(--fluo);border-radius:2px}
-  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:24px}
-  .stat-box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
-  .stat-box .k{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--dim)}
-  .stat-box .v{font-family:'Archivo Black',sans-serif;font-size:1.8rem;margin-top:6px}
+  /* ============ STAT & PANNELLI ============ */
+  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .stat-box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .stat-box .k{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--dim)}
+  .stat-box .v{font-family:'Archivo Black',sans-serif;font-size:1.5rem;margin-top:4px}
   .stat-box .v.fluo{color:var(--fluo)}
-  .pill{display:inline-block;padding:4px 12px;border-radius:50px;font-size:.72rem;font-weight:800;
+  .pill{display:inline-block;padding:4px 12px;border-radius:50px;font-size:.68rem;font-weight:800;
     text-transform:uppercase;letter-spacing:1px}
   .pill.open{background:rgba(200,243,29,.12);color:var(--fluo);border:1px solid var(--fluo)}
   .pill.closed{background:rgba(255,71,87,.1);color:var(--red);border:1px solid var(--red)}
 
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;margin-bottom:16px}
+  .panel h3{font-size:.95rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;
+    margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .panel h3::before{content:'';width:4px;height:16px;background:var(--fluo);border-radius:2px;flex-shrink:0}
+
+  .simulate-bar{display:flex;gap:10px;margin-bottom:20px}
+  .simulate-bar .btn-primary{flex:1;padding:15px}
+  .btn-ghost{background:var(--card2);border:1px solid var(--line);color:var(--text);
+    padding:15px 16px;border-radius:12px;font-weight:700;font-size:.82rem;transition:.15s;white-space:nowrap}
+  .btn-ghost:active{border-color:var(--fluo);color:var(--fluo);transform:scale(.97)}
+
   /* feed eventi */
-  .feed{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
-  .event{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--line);
-    border-radius:12px;padding:12px 14px;animation:slideIn .4s ease}
+  .feed{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto}
+  .event{display:flex;align-items:center;gap:10px;background:var(--bg2);
+    border:1px solid var(--line);border-radius:12px;padding:11px 12px;animation:slideIn .35s ease}
   @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-  .event .pts{font-weight:900;min-width:52px;text-align:center;padding:4px 8px;border-radius:8px;font-size:.9rem}
+  .event .pts{font-weight:900;min-width:48px;text-align:center;padding:4px 6px;
+    border-radius:8px;font-size:.82rem;flex-shrink:0}
   .event .pts.pos{background:rgba(200,243,29,.12);color:var(--fluo)}
   .event .pts.neg{background:rgba(255,71,87,.12);color:var(--red)}
-  .event .desc{font-size:.88rem}
+  .event .desc{font-size:.82rem;line-height:1.35}
   .event .desc b{color:var(--fluo)}
-  .event .giorn{margin-left:auto;font-size:.7rem;color:var(--dim);white-space:nowrap}
+  .event .giorn{margin-left:auto;font-size:.65rem;color:var(--dim);white-space:nowrap;padding-left:6px}
 
-  /* ============ MERCATO ============ */
-  .prof-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+  .top-line{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:11px 2px;border-bottom:1px dashed var(--line);font-size:.88rem}
+  .top-line:last-child{border-bottom:none}
+
+  /* ============ CARD PROF ============ */
+  .prof-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:380px){.prof-grid{grid-template-columns:1fr}}
   .prof-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    padding:20px;transition:.25s;position:relative;overflow:hidden}
-  .prof-card:hover{transform:translateY(-4px);border-color:var(--fluo);box-shadow:0 12px 30px rgba(0,0,0,.4)}
+    padding:16px;transition:.2s;position:relative;overflow:hidden}
+  .prof-card:active{transform:scale(.98)}
   .prof-card.owned{border-color:var(--fluo)}
   .prof-card.taken{opacity:.55}
-  .prof-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-  .prof-name{font-weight:900;font-size:1.15rem}
-  .prof-role{font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;font-weight:700}
-  .prof-cost{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:6px 12px;
-    font-weight:900;color:var(--fluo)}
-  .prof-meta{font-size:.8rem;color:var(--dim);margin-bottom:14px;min-height:18px}
+  .prof-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px}
+  .prof-name{font-weight:900;font-size:1.05rem;line-height:1.1}
+  .prof-role{font-size:.62rem;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;
+    font-weight:700;margin-top:3px;line-height:1.3}
+  .prof-cost{background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+    padding:5px 10px;font-weight:900;color:var(--fluo);font-size:.85rem;white-space:nowrap;flex-shrink:0}
+  .prof-meta{font-size:.76rem;color:var(--dim);margin-bottom:12px}
   .prof-meta b{color:var(--text)}
-  .buy-btn{width:100%;padding:11px;border:none;border-radius:10px;font-weight:900;font-size:.85rem;
-    background:var(--fluo);color:#111;transition:.2s}
-  .buy-btn:hover:not(:disabled){background:var(--fluo-dark)}
-  .buy-btn:disabled{background:var(--card2);color:var(--dim);cursor:not-allowed}
-  .sell-btn{width:100%;padding:11px;border:1px solid var(--red);border-radius:10px;font-weight:900;
-    font-size:.85rem;background:transparent;color:var(--red);transition:.2s}
-  .sell-btn:hover{background:rgba(255,71,87,.1)}
-  .owner-tag{position:absolute;top:0;right:0;background:var(--fluo);color:#111;font-size:.65rem;
-    font-weight:900;padding:4px 12px;border-radius:0 0 0 12px;text-transform:uppercase}
+  .buy-btn{width:100%;padding:12px;border:none;border-radius:10px;font-weight:900;
+    font-size:.82rem;background:var(--fluo);color:#111;transition:.15s}
+  .buy-btn:active:not(:disabled){background:var(--fluo-dark);transform:scale(.97)}
+  .buy-btn:disabled{background:var(--card2);color:var(--dim)}
+  .sell-btn{width:100%;padding:12px;border:1px solid var(--red);border-radius:10px;
+    font-weight:900;font-size:.82rem;background:transparent;color:var(--red);transition:.15s}
+  .sell-btn:active{background:rgba(255,71,87,.12);transform:scale(.97)}
+  .owner-tag{position:absolute;top:0;right:0;background:var(--fluo);color:#111;font-size:.6rem;
+    font-weight:900;padding:4px 10px;border-radius:0 0 0 12px;text-transform:uppercase;z-index:2}
 
-  /* ============ CLASSIFICA / CONFRONTO ============ */
-  table{width:100%;border-collapse:collapse}
-  th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--dim);
-    padding:10px 14px;border-bottom:1px solid var(--line)}
-  td{padding:14px;border-bottom:1px solid var(--line);font-size:.95rem}
-  tr:last-child td{border-bottom:none}
-  .pos-badge{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;
-    border-radius:8px;font-weight:900;background:var(--card2)}
-  tr:first-child .pos-badge{background:var(--fluo);color:#111}
-  .pts-big{font-weight:900;color:var(--fluo);font-size:1.05rem}
-  .compare-selects{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;margin-bottom:28px}
-  .compare-selects select{padding:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;
-    color:var(--text);font-size:1rem;font-weight:700;outline:none;width:100%}
-  .vs{font-family:'Archivo Black',sans-serif;color:var(--fluo);font-size:1.4rem}
-  .compare-cards{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  @media(max-width:700px){.compare-cards{grid-template-columns:1fr}.compare-selects{grid-template-columns:1fr}}
-  .compare-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;text-align:center}
-  .compare-card.winner{border-color:var(--fluo);box-shadow:0 0 40px rgba(200,243,29,.12)}
-  .compare-card h4{font-size:1.3rem;font-weight:900;margin-bottom:4px}
-  .compare-card .tot{font-family:'Archivo Black',sans-serif;font-size:3rem;color:var(--fluo);margin:10px 0 16px}
-  .compare-card .rosa-line{display:flex;justify-content:space-between;font-size:.85rem;
+  /* ============ CLASSIFICA ============ */
+  .rank-list{display:flex;flex-direction:column;gap:10px}
+  .rank-row{display:flex;align-items:center;gap:12px;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .rank-row.me{border-color:var(--fluo)}
+  .rank-row.first{background:linear-gradient(135deg,rgba(200,243,29,.1),var(--card))}
+  .pos-badge{display:inline-flex;width:32px;height:32px;align-items:center;justify-content:center;
+    border-radius:9px;font-weight:900;background:var(--card2);flex-shrink:0;font-size:.9rem}
+  .rank-row.first .pos-badge{background:var(--fluo);color:#111}
+  .rank-info{flex:1;min-width:0}
+  .rank-name{font-weight:900;font-size:.98rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .rank-rosa{font-size:.72rem;color:var(--dim);margin-top:3px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pts-big{font-weight:900;color:var(--fluo);font-size:1.2rem;flex-shrink:0}
+
+  /* ============ CONFRONTO ============ */
+  .compare-selects{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:20px}
+  .compare-selects select{padding:13px 12px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;color:var(--text);font-weight:700;outline:none;width:100%;font-size:.9rem}
+  .vs{font-family:'Archivo Black',sans-serif;color:var(--fluo);font-size:1.1rem}
+  .compare-cards{display:flex;flex-direction:column;gap:14px}
+  .compare-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;text-align:center}
+  .compare-card.winner{border-color:var(--fluo);box-shadow:0 0 30px rgba(200,243,29,.12)}
+  .compare-card h4{font-size:1.2rem;font-weight:900;margin-bottom:2px}
+  .compare-card .tot{font-family:'Archivo Black',sans-serif;font-size:2.8rem;color:var(--fluo);margin:6px 0 14px}
+  .compare-card .rosa-label{font-size:.68rem;color:var(--dim);text-transform:uppercase;
+    letter-spacing:1px;font-weight:700;margin-bottom:8px}
+  .rosa-line{display:flex;justify-content:space-between;font-size:.85rem;
     padding:8px 4px;border-bottom:1px dashed var(--line);color:var(--dim)}
-  .compare-card .rosa-line b{color:var(--text)}
-  .crown{font-size:1.6rem}
-  .section-title{font-family:'Archivo Black',sans-serif;font-size:1.8rem;margin-bottom:6px}
-  .section-sub{color:var(--dim);margin-bottom:28px;font-size:.95rem}
-  .empty{color:var(--dim);text-align:center;padding:32px;font-size:.9rem}
-  .simulate-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
-  .btn-ghost{background:var(--card2);border:1px solid var(--line);color:var(--text);padding:12px 20px;
-    border-radius:12px;font-weight:700;font-size:.85rem;transition:.2s}
-  .btn-ghost:hover{border-color:var(--fluo);color:var(--fluo)}
-  .footer{border-top:1px solid var(--line);text-align:center;padding:24px;color:var(--dim);font-size:.8rem}
+  .rosa-line b{color:var(--text)}
+  .crown{font-size:1.5rem}
+  .empty{color:var(--dim);text-align:center;padding:28px 16px;font-size:.88rem;line-height:1.5}
+
+  .footer{text-align:center;padding:10px 20px calc(24px + var(--sab));color:var(--dim);font-size:.72rem}
+
+  /* schermi grandi: resta comunque un layout "da app" centrato */
+  @media(min-width:768px){
+    .page{max-width:560px}
+    .tabbar{max-width:560px;left:50%;transform:translateX(-50%);
+      border-left:1px solid var(--line);border-right:1px solid var(--line)}
+  }
 </style>
 </head>
 <body>
@@ -194,7 +242,7 @@
 <div id="authView" class="auth-wrap">
   <div class="auth-card">
     <div class="auth-logo">FANTA<span style="color:#fff">PROF</span></div>
-    <div class="auth-sub">Il Fantacalcio dei professori. 50 crediti. Zero pietà.</div>
+    <div class="auth-sub">Il Fantacalcio dei professori.<br>50 crediti. 4 prof. Zero pietà.</div>
     <div class="auth-tabs">
       <button id="tabLogin" class="on" onclick="switchAuth('login')">Accedi</button>
       <button id="tabReg" onclick="switchAuth('register')">Registrati</button>
@@ -208,19 +256,14 @@
 
 <!-- ================= APP ================= -->
 <div id="appView" style="display:none">
+
   <div class="topbar">
     <div class="brand">FANTAPROF</div>
-    <div class="nav">
-      <button data-tab="home" class="on" onclick="go('home')">Home</button>
-      <button data-tab="mercato" onclick="go('mercato')">Mercato</button>
-      <button data-tab="rosa" onclick="go('rosa')">La mia Rosa</button>
-      <button data-tab="classifica" onclick="go('classifica')">Classifica</button>
-      <button data-tab="confronto" onclick="go('confronto')">Confronto</button>
-    </div>
-    <div class="user-chip">
+    <div class="top-right">
       <span class="user-credits" id="chipCredits">50 cr</span>
-      <span class="user-name" id="chipName"></span>
-      <button class="logout" onclick="logout()">Esci</button>
+      <button class="logout" onclick="logout()" aria-label="Esci">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
     </div>
   </div>
 
@@ -249,26 +292,27 @@
       <div class="stat-row" id="homeStats"></div>
 
       <div class="simulate-bar">
-        <button class="btn-primary" style="width:auto;padding:12px 28px" onclick="simulaGiornata()">▶ SIMULA GIORNATA</button>
+        <button class="btn-primary" onclick="simulaGiornata()">▶ SIMULA GIORNATA</button>
         <button class="btn-ghost" onclick="toggleMercato()" id="btnMercatoToggle">Chiudi Mercato</button>
       </div>
 
-      <div class="grid-2">
-        <div class="panel">
-          <h3>Ultime notizie — Bonus &amp; Malus</h3>
-          <div class="feed" id="eventFeed"></div>
-        </div>
-        <div class="panel">
-          <h3>Top Prof</h3>
-          <div id="topProfs"></div>
-        </div>
+      <div class="panel">
+        <h3>Ultime notizie — Bonus &amp; Malus</h3>
+        <div class="feed" id="eventFeed"></div>
       </div>
+
+      <div class="panel">
+        <h3>Top Prof</h3>
+        <div id="topProfs"></div>
+      </div>
+
+      <div class="footer">FANTAPROF © 2026 — Sinno lancia sedie, noi contiamo i punti.</div>
     </div>
 
     <!-- MERCATO -->
     <div id="tab-mercato" style="display:none">
-      <div class="section-title">Mercato Professori</div>
-      <div class="section-sub">Compra le prof per la tua rosa. Budget massimo: 50 crediti. Rosa massima: 5 prof.</div>
+      <div class="section-title">Mercato</div>
+      <div class="section-sub">Compra le prof per la tua rosa. Budget: 50 crediti · Rosa max: 4 prof.</div>
       <div class="prof-grid" id="mercatoGrid"></div>
     </div>
 
@@ -281,19 +325,14 @@
 
     <!-- CLASSIFICA -->
     <div id="tab-classifica" style="display:none">
-      <div class="section-title">Classifica Generale</div>
+      <div class="section-title">Classifica</div>
       <div class="section-sub">Punteggi aggiornati all'ultima giornata simulata.</div>
-      <div class="panel" style="padding:8px 0">
-        <table>
-          <thead><tr><th>Pos</th><th>Fantallenatore</th><th>Rosa</th><th>Punti</th></tr></thead>
-          <tbody id="classificaBody"></tbody>
-        </table>
-      </div>
+      <div class="rank-list" id="classificaBody"></div>
     </div>
 
     <!-- CONFRONTO -->
     <div id="tab-confronto" style="display:none">
-      <div class="section-title">Confronto Testa a Testa</div>
+      <div class="section-title">Confronto</div>
       <div class="section-sub">Scegli due giocatori e scopri chi sta vincendo.</div>
       <div class="compare-selects">
         <select id="cmpA" onchange="renderConfronto()"></select>
@@ -305,7 +344,29 @@
 
   </div>
 
-  <div class="footer">FANTAPROF © 2026 — Sinno lancia sedie, noi contiamo i punti.</div>
+  <!-- BOTTOM TAB BAR -->
+  <nav class="tabbar">
+    <button data-tab="home" class="on" onclick="go('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
+    <button data-tab="mercato" onclick="go('mercato')">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      Mercato
+    </button>
+    <button data-tab="rosa" onclick="go('rosa')">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Rosa
+    </button>
+    <button data-tab="classifica" onclick="go('classifica')">
+      <svg viewBox="0 0 24 24"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2 1.5 4 4 4"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2-1.5 4-4 4"/></svg>
+      Classifica
+    </button>
+    <button data-tab="confronto" onclick="go('confronto')">
+      <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      Sfida
+    </button>
+  </nav>
 </div>
 
 <script>
@@ -315,19 +376,18 @@
    all'API Python/Supabase (vedi server.py incluso).
 ========================================================= */
 const PROFS = [
-  { id:1,  nome:'Sinno',      costo:1, ruolo:'Matematica' },
+  { id:1,  nome:'Sinno',      costo:1,  ruolo:'Matematica' },
   { id:2,  nome:'Guarnieri',  costo:18, ruolo:'Religione' },
-  { id:3,  nome:'Fasano',     costo:20,  ruolo:'Arte' },
+  { id:3,  nome:'Fasano',     costo:20, ruolo:'Arte' },
   { id:4,  nome:'Panico',     costo:1,  ruolo:'Supplenza' },
   { id:5,  nome:'Tarasco',    costo:7,  ruolo:'Tecnologia' },
   { id:6,  nome:'Martinelli', costo:1,  ruolo:'Supplenza' },
   { id:7,  nome:'Iorio',      costo:1,  ruolo:'Storia e Geografia' },
-  { id:8,  nome:'Capozza',    costo:31,  ruolo:'Italiano' },
+  { id:8,  nome:'Capozza',    costo:31, ruolo:'Italiano' },
   { id:9,  nome:'Smaldone',   costo:1,  ruolo:'Inglese' },
-  { id:10, nome:'Petrara',    costo:22,  ruolo:'Musica' },
+  { id:10, nome:'Petrara',    costo:22, ruolo:'Musica' },
   { id:11, nome:'Coretti',    costo:2,  ruolo:'Francese' },
-  { id:12, nome:'Viziello',   costo:18, ruolo:'Scienze Motorie'},
-  
+  { id:12, nome:'Viziello',   costo:18, ruolo:'Scienze Motorie' },
 ];
 const MAX_CREDITS = 50, MAX_ROSA = 4;
 
@@ -339,7 +399,7 @@ const BONUS = [
   ['Ci porta in gita',50],['Non funziona il computer',5],
   ['Inciampa/cade',20],['Fa vedere un film',15],
   ['Risata vera (non sorriso)',10],['Esercitazione nella sua ora',20],
-  ['Nomina l\'esame di maturità',1],['Veste monocromo',10],
+  ["Nomina l'esame di maturità",1],['Veste monocromo',10],
 ];
 const MALUS = [
   ['Sbaglia nome di uno studente',-10],['Arriva in ritardo',-10],
@@ -351,14 +411,20 @@ const MALUS = [
 ];
 
 let DB = loadDB();
-let session = null;       // username loggato
+let session = null;
 let authMode = 'login';
 let currentTab = 'home';
 
 function loadDB(){
   try{
     const raw = localStorage.getItem('fantaprof_db');
-    if(raw) return JSON.parse(raw);
+    if(raw){
+      const db = JSON.parse(raw);
+      // migrazione: rimuovi dalle rose le prof non più esistenti
+      const ids = PROFS.map(p => p.id);
+      db.users.forEach(u => u.rosa = (u.rosa || []).filter(id => ids.includes(id)));
+      return db;
+    }
   }catch(e){}
   return { users:[], giornata:0, mercatoAperto:true, eventi:[], profPunti:{} };
 }
@@ -411,16 +477,16 @@ function me(){ return DB.users.find(x => x.username === session); }
 function enterApp(){
   document.getElementById('authView').style.display = 'none';
   document.getElementById('appView').style.display = 'block';
-  document.getElementById('chipName').textContent = session;
   go('home');
 }
 
 /* ==================== NAVIGAZIONE ==================== */
 function go(tab){
   currentTab = tab;
-  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   ['home','mercato','rosa','classifica','confronto'].forEach(t =>
     document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none');
+  window.scrollTo({ top: 0 });
   renderAll();
 }
 
@@ -435,16 +501,15 @@ function renderHome(){
   const m = me();
   document.getElementById('homeStats').innerHTML = `
     <div class="stat-box"><div class="k">Giornata</div><div class="v fluo">${DB.giornata}</div></div>
-    <div class="stat-box"><div class="k">Stato Mercato</div><div class="v" style="font-size:1.1rem;margin-top:12px">
+    <div class="stat-box"><div class="k">Mercato</div><div class="v" style="font-size:.95rem;margin-top:9px">
       <span class="pill ${DB.mercatoAperto?'open':'closed'}">${DB.mercatoAperto?'APERTO':'CHIUSO'}</span></div></div>
-    <div class="stat-box"><div class="k">I tuoi Crediti</div><div class="v fluo">${m.credits}</div></div>
-    <div class="stat-box"><div class="k">I tuoi Punti</div><div class="v">${m.punti}</div></div>
-    <div class="stat-box"><div class="k">Prof in Rosa</div><div class="v">${m.rosa.length}/${MAX_ROSA}</div></div>`;
-  document.getElementById('btnMercatoToggle').textContent = DB.mercatoAperto ? 'Chiudi Mercato' : 'Apri Mercato';
+    <div class="stat-box"><div class="k">Crediti</div><div class="v fluo">${m.credits}</div></div>
+    <div class="stat-box"><div class="k">Punti · Rosa ${m.rosa.length}/${MAX_ROSA}</div><div class="v">${m.punti}</div></div>`;
+  document.getElementById('btnMercatoToggle').textContent = DB.mercatoAperto ? 'Chiudi' : 'Apri';
 
   const feed = document.getElementById('eventFeed');
   if(DB.eventi.length === 0){
-    feed.innerHTML = '<div class="empty">Nessun evento ancora. Simula la prima giornata! 🪑</div>';
+    feed.innerHTML = '<div class="empty">Nessun evento ancora.<br>Simula la prima giornata! 🪑</div>';
   } else {
     feed.innerHTML = DB.eventi.slice(-30).reverse().map(e => `
       <div class="event">
@@ -457,8 +522,8 @@ function renderHome(){
   const top = PROFS.map(p => ({...p, punti: DB.profPunti[p.id] || 0}))
                    .sort((a,b) => b.punti - a.punti).slice(0,5);
   document.getElementById('topProfs').innerHTML = top.map((p,i) => `
-    <div class="rosa-line" style="display:flex;justify-content:space-between;padding:10px 4px;border-bottom:1px dashed var(--line)">
-      <span>${i+1}. <b style="color:var(--text)">${p.nome}</b> <span style="color:var(--dim);font-size:.8rem">${p.ruolo}</span></span>
+    <div class="top-line">
+      <span>${i+1}. <b style="color:var(--text)">${p.nome}</b> <span style="color:var(--dim);font-size:.75rem">${p.ruolo}</span></span>
       <b style="color:var(--fluo)">${p.punti} pt</b>
     </div>`).join('');
 }
@@ -512,7 +577,7 @@ function compra(id){
 function vendi(id){
   const m = me(), p = PROFS.find(x => x.id === id);
   m.rosa = m.rosa.filter(x => x !== id);
-  m.credits = Math.min(MAX_CREDITS + 50, m.credits + p.costo); // rivendita libera
+  m.credits = Math.min(MAX_CREDITS + 50, m.credits + p.costo);
   saveDB(); renderAll();
 }
 
@@ -523,7 +588,7 @@ function renderRosa(){
     `${m.rosa.length}/${MAX_ROSA} prof · ${m.credits} crediti residui · ${m.punti} punti totali`;
   if(m.rosa.length === 0){
     document.getElementById('rosaGrid').innerHTML =
-      '<div class="empty" style="grid-column:1/-1">Rosa vuota. Vai al Mercato e compra le tue prof! 🛒</div>';
+      '<div class="empty" style="grid-column:1/-1">Rosa vuota.<br>Vai al Mercato e compra le tue prof! 🛒</div>';
     return;
   }
   document.getElementById('rosaGrid').innerHTML = m.rosa.map(id => {
@@ -542,24 +607,20 @@ function renderRosa(){
 /* ==================== SIMULAZIONE GIORNATA ==================== */
 function simulaGiornata(){
   DB.giornata++;
-  // reset punti utenti, li ricalcoliamo da zero sul totale storico delle prof
   PROFS.forEach(p => {
-    const nEventi = 1 + Math.floor(Math.random() * 3); // 1-3 eventi per prof
+    const nEventi = 1 + Math.floor(Math.random() * 3);
     for(let i = 0; i < nEventi; i++){
       const isBonus = Math.random() < 0.55;
       const pool = isBonus ? BONUS : MALUS;
       const ev = pool[Math.floor(Math.random() * pool.length)];
-      // gli eventi leggendari (capriola) sono rarissimi
       if(ev[1] >= 200 && Math.random() > 0.03) { i--; continue; }
       DB.profPunti[p.id] = (DB.profPunti[p.id] || 0) + ev[1];
       DB.eventi.push({ giornata: DB.giornata, prof: p.nome, testo: ev[0], punti: ev[1] });
     }
   });
-  // ricalcola i punti di ogni giocatore = somma punti delle sue prof
   DB.users.forEach(u => {
     u.punti = u.rosa.reduce((sum, id) => sum + (DB.profPunti[id] || 0), 0);
   });
-  // tieni solo gli ultimi 100 eventi
   if(DB.eventi.length > 100) DB.eventi = DB.eventi.slice(-100);
   saveDB(); renderAll();
 }
@@ -567,17 +628,23 @@ function simulaGiornata(){
 /* ==================== CLASSIFICA ==================== */
 function renderClassifica(){
   const sorted = [...DB.users].sort((a,b) => b.punti - a.punti);
-  document.getElementById('classificaBody').innerHTML = sorted.map((u,i) => `
-    <tr>
-      <td><span class="pos-badge">${i+1}</span></td>
-      <td><b>${u.username}</b>${u.username===session?' <span class="pill open">Tu</span>':''}</td>
-      <td style="color:var(--dim);font-size:.85rem">${u.rosa.map(id => PROFS.find(p=>p.id===id).nome).join(', ') || '—'}</td>
-      <td class="pts-big">${u.punti}</td>
-    </tr>`).join('') || '<tr><td colspan="4" class="empty">Nessun giocatore registrato.</td></tr>';
+  const box = document.getElementById('classificaBody');
+  if(sorted.length === 0){
+    box.innerHTML = '<div class="empty">Nessun giocatore registrato.</div>';
+    return;
+  }
+  box.innerHTML = sorted.map((u,i) => `
+    <div class="rank-row ${i===0?'first':''} ${u.username===session?'me':''}">
+      <span class="pos-badge">${i+1}</span>
+      <div class="rank-info">
+        <div class="rank-name">${u.username}${u.username===session?' <span class="pill open">Tu</span>':''}</div>
+        <div class="rank-rosa">${u.rosa.map(id => { const p = PROFS.find(x=>x.id===id); return p ? p.nome : ''; }).filter(Boolean).join(' · ') || 'Rosa vuota'}</div>
+      </div>
+      <span class="pts-big">${u.punti}</span>
+    </div>`).join('');
 }
 
 /* ==================== CONFRONTO ==================== */
-let cmpInit = false;
 function initConfronto(){
   const opts = DB.users.map(u => `<option value="${u.username}">${u.username}</option>`).join('');
   const selA = document.getElementById('cmpA'), selB = document.getElementById('cmpB');
@@ -593,7 +660,7 @@ function renderConfronto(){
   const a = document.getElementById('cmpA').value;
   const b = document.getElementById('cmpB').value;
   const box = document.getElementById('compareCards');
-  if(!a || !b){ box.innerHTML = '<div class="empty" style="grid-column:1/-1">Servono almeno 2 giocatori registrati.</div>'; return; }
+  if(!a || !b){ box.innerHTML = '<div class="empty">Servono almeno 2 giocatori registrati.</div>'; return; }
   const ua = DB.users.find(u => u.username === a);
   const ub = DB.users.find(u => u.username === b);
   const winA = ua.punti > ub.punti, winB = ub.punti > ua.punti;
@@ -602,11 +669,11 @@ function renderConfronto(){
       ${win ? '<div class="crown">👑</div>' : '<div class="crown" style="opacity:.15">👑</div>'}
       <h4>${u.username}</h4>
       <div class="tot">${u.punti}</div>
-      <div style="font-size:.75rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:12px">Rosa</div>
+      <div class="rosa-label">Rosa</div>
       ${u.rosa.length === 0 ? '<div class="empty" style="padding:8px">Nessuna prof</div>' :
         u.rosa.map(id => {
           const p = PROFS.find(x => x.id === id);
-          return `<div class="rosa-line"><span>${p.nome}</span><b>${DB.profPunti[p.id]||0} pt</b></div>`;
+          return p ? `<div class="rosa-line"><span>${p.nome}</span><b>${DB.profPunti[p.id]||0} pt</b></div>` : '';
         }).join('')}
     </div>`).join('');
 }
