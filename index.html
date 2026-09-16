@@ -371,11 +371,10 @@
 
 <script>
 /* =========================================================
-   DATABASE INTEGRATO CON RENDER + SUPABASE
+   DATABASE LOCALE (simula Supabase lato frontend)
+   In produzione: sostituire loadDB/saveDB con chiamate
+   all'API Python/Supabase (vedi server.py incluso).
 ========================================================= */
-// ⚠️ SOSTITUISCI QUESTO LINK CON IL TUO URL REALE DI RENDER
-const BACKEND_URL = "https://fantaprof.onrender.com"; 
-
 const PROFS = [
   { id:1,  nome:'Sinno',      costo:1,  ruolo:'Matematica' },
   { id:2,  nome:'Guarnieri',  costo:18, ruolo:'Religione' },
@@ -392,90 +391,144 @@ const PROFS = [
 ];
 const MAX_CREDITS = 50, MAX_ROSA = 4;
 
-// Mantieni BONUS e MALUS invariati...
+const BONUS = [
+  ['Assenza (buco in orario)',20],['Ora di relax, niente spiegazione',15],
+  ['Parolaccia in classe',30],['Usa gergo giovanile',15],
+  ['Scrive alla lavagna',5],['Correzione immediata dei compiti',15],
+  ['Capriola sulla cattedra',200],['Fa un complimento alla classe',10],
+  ['Ci porta in gita',50],['Non funziona il computer',5],
+  ['Inciampa/cade',20],['Fa vedere un film',15],
+  ['Risata vera (non sorriso)',10],['Esercitazione nella sua ora',20],
+  ["Nomina l'esame di maturità",1],['Veste monocromo',10],
+];
+const MALUS = [
+  ['Sbaglia nome di uno studente',-10],['Arriva in ritardo',-10],
+  ['Verifica a sorpresa senza preavviso',-15],['Battuta da boomer',-15],
+  ['Mette una nota',-30],['Dimentica le verifiche da correggere',-20],
+  ['Apre porte e finestre a gennaio',-10],['Chiede la chiave della classe',-15],
+  ['Lavoro di gruppo obbligatorio',-15],['Litiga con un alunno',-50],
+  ['Piange in classe',-50],['Non manda nessuno in bagno',-15],
+];
 
+/* ========================================================================
+   INTEGRAZIONE DIRETTA SUPABASE (Sostituisce il vecchio localStorage)
+======================================================================== */
+const SUPABASE_URL = "https://koclurwyaeitwjxvktot.supabase.co";
+// ⚠️ INCOLLA QUI LA TUA CHIAVE ANON PUBLIC DI SUPABASE
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvY2x1cnd5YWVpdHdqeHZrdG90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1NzMwMDksImV4cCI6MjEwNTE0OTAwOX0.VDOPW2DGDEuhjg-8glCRvSwdOl7CZ1RDJWnKEatzJTA"; 
+
+const headers = {
+  "apikey": SUPABASE_KEY,
+  "Authorization": `Bearer ${SUPABASE_KEY}`,
+  "Content-Type": "application/json",
+  "Prefer": "return=representation"
+};
+
+// Inizializziamo il DB locale vuoto. Verrà riempito subito dopo via internet.
 let DB = { users: [], giornata: 0, mercatoAperto: true, eventi: [], profPunti: {} };
 let session = null;
 let authMode = 'login';
 let currentTab = 'home';
 
-// Carica i dati dal server e aggiorna l'interfaccia
+// Carica i dati in tempo reale da tutte le tabelle Postgres di Supabase
 async function loadDB() {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/state`);
-    if (!res.ok) throw new Error("Errore nel caricamento dello stato dal server");
-    
-    const data = await res.json();
-    
-    // Assegnazione sicura dei dati ricevuti da Render/Supabase
-    DB.users = data.users || [];
-    DB.giornata = data.state ? data.state.giornata : 0;
-    DB.mercatoAperto = data.state ? data.state.mercato_aperto : true;
-    DB.eventi = data.state ? data.state.eventi : [];
-    DB.profPunti = data.state ? data.state.prof_punti : {};
+    // 1. Scarica lo stato globale del gioco
+    const resState = await fetch(`${SUPABASE_URL}/rest/v1/state?id=eq.1`, { headers });
+    const stateData = await resState.json();
 
-    // Forziamo il rinfresco della grafica se l'utente è loggato
-    if (session && typeof renderAll === "function") {
-      renderAll();
+    // 2. Scarica la lista di tutti gli utenti registrati
+    const resUsers = await fetch(`${SUPABASE_URL}/rest/v1/users`, { headers });
+    const usersData = await resUsers.json();
+
+    // 3. Scarica la cronologia degli eventi/notifiche
+    const resEventi = await fetch(`${SUPABASE_URL}/rest/v1/eventi?order=data_ora.desc&limit=50`, { headers });
+    const eventiData = await resEventi.json();
+
+    if (stateData && stateData[0] && usersData) {
+      // Sincronizza i dati online dentro la variabile globale del tuo gioco
+      DB.giornata = stateData[0].giornata;
+      DB.mercatoAperto = stateData[0].mercato_aperto;
+      DB.profPunti = stateData[0].prof_punti || {};
+      DB.users = usersData;
+      
+      // Mappa i messaggi degli eventi scaricati nel formato che usa la tua grafica
+      DB.eventi = eventiData.map(e => e.descrizione);
+
+      // Pulisce le rose da eventuali prof non più esistenti (la tua migrazione originale)
+      const ids = PROFS.map(p => p.id);
+      DB.users.forEach(u => u.rosa = (u.rosa || []).filter(id => ids.includes(id)));
+
+      // Rinfresca l'interfaccia grafica originale se l'utente è loggato
+      if (session && typeof renderAll === "function") {
+        renderAll();
+      }
     }
   } catch (e) {
-    console.error("Impossibile connettersi al database su Render:", e);
+    console.error("Errore durante il caricamento da Supabase:", e);
   }
 }
 
-// Sostituisci interamente la tua doAuth con questa
-async function doAuth() {
+// Salva le impostazioni dello stato globale e del mercato su Supabase
+async function saveDB() {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/state?id=eq.1`, {
+      method: "PATCH",
+      headers: headers,
+      body: JSON.stringify({
+        giornata: DB.giornata,
+        mercato_aperto: DB.mercatoAperto,
+        prof_punti: DB.profPunti
+      })
+    });
+  } catch (e) {
+    console.error("Errore durante il salvataggio dello stato su Supabase:", e);
+  }
+}
+
+/* ==================== AUTH ==================== */
+function switchAuth(mode){
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('on', mode==='login');
+  document.getElementById('tabReg').classList.toggle('on', mode==='register');
+  document.getElementById('authBtn').textContent = mode==='login' ? 'ACCEDI' : 'CREA ACCOUNT';
+  hideError();
+}
+function showError(msg){
+  const e = document.getElementById('authError');
+  e.textContent = msg; e.style.display = 'block';
+}
+function hideError(){ document.getElementById('authError').style.display='none'; }
+
+function doAuth(){
   const u = document.getElementById('authUser').value.trim();
   const p = document.getElementById('authPass').value;
-  if (!u || !p) return showError('Inserisci username e password.');
-  if (u.length < 3) return showError('Username troppo corto (min 3 caratteri).');
+  if(!u || !p) return showError('Inserisci username e password.');
+  if(u.length < 3) return showError('Username troppo corto (min 3 caratteri).');
 
-  const endpoint = authMode === 'register' ? '/api/register' : '/api/login';
-
-  try {
-    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: u, password: p }) // Invio pulito senza btoa()
-    });
-
-    // Leggiamo la risposta in modo sicuro
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      return showError("Il server ha risposto con un formato non valido. Controlla i log di Render.");
-    }
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return showError(data.error || 'Credenziali errate o problema sul server.');
-    }
-
-    // Se l'autenticazione ha successo
-    session = data.user.username;
-    localStorage.setItem('fantaprof_session', session);
-    
-    // Prima scarichiamo i dati aggiornati, poi entriamo nell'app
-    await loadDB();
-    
-    // Controllo di sicurezza per evitare il crash di "m is undefined"
-    if (me()) {
-      enterApp();
-    } else {
-      showError("Utente autenticato ma non trovato nel database globale. Riprova.");
-    }
-
-  } catch (error) {
-    showError('Impossibile stabilire una connessione col server.');
-    console.error(error);
+  if(authMode === 'register'){
+    if(DB.users.some(x => x.username.toLowerCase() === u.toLowerCase()))
+      return showError('Username già registrato. Prova ad accedere.');
+    DB.users.push({ username:u, password:btoa(p), credits:MAX_CREDITS, rosa:[], punti:0 });
+    saveDB();
+    session = u;
+  } else {
+    const found = DB.users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === btoa(p));
+    if(!found) return showError('Credenziali errate.');
+    session = found.username;
   }
+  localStorage.setItem('fantaprof_session', session);
+  enterApp();
 }
 
-// Sistema la funzione me() per renderla insensibile alle maiuscole/minuscole
-function me() { 
-  if (!session || !DB.users) return null;
-  return DB.users.find(x => x.username.toLowerCase() === session.toLowerCase()) || null; 
+function logout(){
+  session = null;
+  localStorage.removeItem('fantaprof_session');
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('authView').style.display = 'flex';
 }
+
+function me(){ return DB.users.find(x => x.username === session); }
 
 function enterApp(){
   document.getElementById('authView').style.display = 'none';
@@ -493,12 +546,8 @@ function go(tab){
   renderAll();
 }
 
-function renderAll() {
+function renderAll(){
   const m = me();
-  if (!m) {
-    // Se l'utente non è ancora caricato, evita di far crashare la pagina
-    return; 
-  }
   document.getElementById('chipCredits').textContent = m.credits + ' cr';
   renderHome(); renderMercato(); renderRosa(); renderClassifica(); initConfronto();
 }
@@ -686,15 +735,15 @@ function renderConfronto(){
 }
 
 /* ==================== AVVIO ==================== */
-// Controlla se c'era una sessione attiva e carica il database all'avvio
+// Controlla se l'utente era già loggato e scarica i dati da Supabase all'avvio
 document.addEventListener("DOMContentLoaded", async () => {
   const savedSession = localStorage.getItem('fantaprof_session');
-  if(savedSession) {
+  if (savedSession) {
     session = savedSession;
     await loadDB();
-    enterApp();
+    if (typeof enterApp === "function") enterApp();
   } else {
-    logout();
+    if (typeof logout === "function") logout();
   }
 });
 
