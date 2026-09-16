@@ -440,25 +440,40 @@ function showError(msg){
 }
 function hideError(){ document.getElementById('authError').style.display='none'; }
 
-function doAuth(){
+async function doAuth(){
   const u = document.getElementById('authUser').value.trim();
   const p = document.getElementById('authPass').value;
   if(!u || !p) return showError('Inserisci username e password.');
   if(u.length < 3) return showError('Username troppo corto (min 3 caratteri).');
 
-  if(authMode === 'register'){
-    if(DB.users.some(x => x.username.toLowerCase() === u.toLowerCase()))
-      return showError('Username già registrato. Prova ad accedere.');
-    DB.users.push({ username:u, password:btoa(p), credits:MAX_CREDITS, rosa:[], punti:0 });
-    saveDB();
-    session = u;
-  } else {
-    const found = DB.users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === btoa(p));
-    if(!found) return showError('Credenziali errate.');
-    session = found.username;
+  const endpoint = authMode === 'register' ? '/api/register' : '/api/login';
+
+  try {
+    // Chiamata fetch verso il server Render
+    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p }) // Rimosso btoa(), il server Python legge la password in chiaro o la gestisce lui
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return showError(data.error || 'Si è verificato un errore.');
+    }
+
+    // Se l'autenticazione è riuscita
+    session = data.user.username;
+    localStorage.setItem('fantaprof_session', session);
+    
+    // Scarica i dati aggiornati del server prima di entrare nell'app
+    await loadDB();
+    enterApp();
+
+  } catch (error) {
+    showError('Impossibile stabilire una connessione con il server.');
+    console.error(error);
   }
-  localStorage.setItem('fantaprof_session', session);
-  enterApp();
 }
 
 function logout(){
@@ -675,12 +690,18 @@ function renderConfronto(){
 }
 
 /* ==================== AVVIO ==================== */
-document.getElementById('authPass').addEventListener('keydown', e => { if(e.key === 'Enter') doAuth(); });
-const saved = localStorage.getItem('fantaprof_session');
-if(saved && DB.users.some(u => u.username === saved)){
-  session = saved;
-  enterApp();
-}
+// Controlla se c'era una sessione attiva e carica il database all'avvio
+document.addEventListener("DOMContentLoaded", async () => {
+  const savedSession = localStorage.getItem('fantaprof_session');
+  if(savedSession) {
+    session = savedSession;
+    await loadDB();
+    enterApp();
+  } else {
+    logout();
+  }
+});
+
 </script>
 </body>
 </html>
