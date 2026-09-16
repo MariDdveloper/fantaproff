@@ -371,10 +371,11 @@
 
 <script>
 /* =========================================================
-   DATABASE LOCALE (simula Supabase lato frontend)
-   In produzione: sostituire loadDB/saveDB con chiamate
-   all'API Python/Supabase (vedi server.py incluso).
+   DATABASE INTEGRATO CON RENDER + SUPABASE
 ========================================================= */
+// ⚠️ SOSTITUISCI QUESTO LINK CON IL TUO URL REALE DI RENDER
+const BACKEND_URL = "https://fantaprof.onrender.com"; 
+
 const PROFS = [
   { id:1,  nome:'Sinno',      costo:1,  ruolo:'Matematica' },
   { id:2,  nome:'Guarnieri',  costo:18, ruolo:'Religione' },
@@ -391,44 +392,39 @@ const PROFS = [
 ];
 const MAX_CREDITS = 50, MAX_ROSA = 4;
 
-const BONUS = [
-  ['Assenza (buco in orario)',20],['Ora di relax, niente spiegazione',15],
-  ['Parolaccia in classe',30],['Usa gergo giovanile',15],
-  ['Scrive alla lavagna',5],['Correzione immediata dei compiti',15],
-  ['Capriola sulla cattedra',200],['Fa un complimento alla classe',10],
-  ['Ci porta in gita',50],['Non funziona il computer',5],
-  ['Inciampa/cade',20],['Fa vedere un film',15],
-  ['Risata vera (non sorriso)',10],['Esercitazione nella sua ora',20],
-  ["Nomina l'esame di maturità",1],['Veste monocromo',10],
-];
-const MALUS = [
-  ['Sbaglia nome di uno studente',-10],['Arriva in ritardo',-10],
-  ['Verifica a sorpresa senza preavviso',-15],['Battuta da boomer',-15],
-  ['Mette una nota',-30],['Dimentica le verifiche da correggere',-20],
-  ['Apre porte e finestre a gennaio',-10],['Chiede la chiave della classe',-15],
-  ['Lavoro di gruppo obbligatorio',-15],['Litiga con un alunno',-50],
-  ['Piange in classe',-50],['Non manda nessuno in bagno',-15],
-];
+// Mantieni BONUS e MALUS invariati...
 
-let DB = loadDB();
+let DB = { users:[], giornata:0, mercatoAperto:true, eventi:[], profPunti:{} };
 let session = null;
 let authMode = 'login';
 let currentTab = 'home';
 
-function loadDB(){
-  try{
-    const raw = localStorage.getItem('fantaprof_db');
-    if(raw){
-      const db = JSON.parse(raw);
-      // migrazione: rimuovi dalle rose le prof non più esistenti
-      const ids = PROFS.map(p => p.id);
-      db.users.forEach(u => u.rosa = (u.rosa || []).filter(id => ids.includes(id)));
-      return db;
-    }
-  }catch(e){}
-  return { users:[], giornata:0, mercatoAperto:true, eventi:[], profPunti:{} };
+// Questa funzione ora scarica i dati in tempo reale dal server
+async function loadDB(){
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/state`);
+    if (!res.ok) throw new Error("Errore nel caricamento del server");
+    const data = await res.json();
+    
+    // Mappa la struttura del backend Python alla tua variabile DB locale
+    DB.users = data.users;
+    DB.giornata = data.state.giornata;
+    DB.mercatoAperto = data.state.mercato_aperto;
+    DB.eventi = data.state.eventi;
+    DB.profPunti = data.state.prof_punti;
+
+    // Rinfresca l'interfaccia grafica del gioco (se hai una funzione render() o go() chiamala qui)
+    if(session) go(currentTab); 
+  } catch(e) {
+    console.error("Impossibile connettersi al database su Render:", e);
+  }
 }
-function saveDB(){ localStorage.setItem('fantaprof_db', JSON.stringify(DB)); }
+
+// Il salvataggio globale ora viene gestito dal server, svuotiamo la vecchia funzione locale
+function saveDB() { 
+  // Lasciata vuota perché salviamo tramite le singole API (buy, sell, simulate)
+}
+
 
 /* ==================== AUTH ==================== */
 function switchAuth(mode){
