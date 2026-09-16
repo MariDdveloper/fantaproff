@@ -500,7 +500,7 @@ function showError(msg){
 }
 function hideError(){ document.getElementById('authError').style.display='none'; }
 
-/* ==================== AUTH CONNESSO A SUPABASE ==================== */
+/* ==================== AUTH CONNESSO A SUPABASE (DIAGNOSTICA) ==================== */
 function doAuth(){
   const u = document.getElementById('authUser').value.trim();
   const p = document.getElementById('authPass').value;
@@ -508,30 +508,31 @@ function doAuth(){
   if(u.length < 3) return showError('Username troppo corto (min 3 caratteri).');
 
   if(authMode === 'register'){
-    // 1. Controlla localmente se l'utente esiste già (i dati sono sincronizzati da loadDB)
     if(DB.users.some(x => x.username.toLowerCase() === u.toLowerCase())) {
       return showError('Username già registrato. Prova ad accedere.');
     }
 
-    // 2. Prepara il nuovo utente per il database PostgreSQL
     const nuovoUtente = { 
       username: u, 
-      password: btoa(p), // Mantiene la tua codifica originale in Base64
+      password: btoa(p), 
       credits: MAX_CREDITS, 
       rosa: [], 
       punti: 0 
     };
 
-    // 3. Invia i dati DIRETTAMENTE alla tabella 'users' di Supabase
     fetch(`${SUPABASE_URL}/rest/v1/users`, {
       method: "POST",
       headers: headers,
       body: JSON.stringify(nuovoUtente)
     })
-    .then(res => {
-      if(!res.ok) throw new Error("Errore durante la registrazione su Supabase");
+    .then(async (res) => {
+      // Se c'è un errore, leggiamo il messaggio dettagliato inviato da Supabase
+      if(!res.ok) {
+        const errorDetails = await res.json();
+        console.error("Dettaglio Errore Supabase:", errorDetails);
+        throw new Error(errorDetails.message || "Errore di database");
+      }
       
-      // Aggiorna lo stato locale ed effettua il login
       DB.users.push(nuovoUtente);
       session = u;
       localStorage.setItem('fantaprof_session', session);
@@ -539,11 +540,11 @@ function doAuth(){
     })
     .catch(err => {
       console.error(err);
-      showError("Impossibile salvare l'utente su Supabase. Controlla la chiave API.");
+      showError("Impossibile salvare l'utente: " + err.message);
     });
 
   } else {
-    // LOGIN: Cerca l'utente tra quelli scaricati da Supabase
+    // LOGIN
     const found = DB.users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === btoa(p));
     if(!found) return showError('Credenziali errate.');
     
