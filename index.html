@@ -394,96 +394,88 @@ const MAX_CREDITS = 50, MAX_ROSA = 4;
 
 // Mantieni BONUS e MALUS invariati...
 
-let DB = { users:[], giornata:0, mercatoAperto:true, eventi:[], profPunti:{} };
+let DB = { users: [], giornata: 0, mercatoAperto: true, eventi: [], profPunti: {} };
 let session = null;
 let authMode = 'login';
 let currentTab = 'home';
 
-// Questa funzione ora scarica i dati in tempo reale dal server
-async function loadDB(){
+// Carica i dati dal server e aggiorna l'interfaccia
+async function loadDB() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/state`);
-    if (!res.ok) throw new Error("Errore nel caricamento del server");
+    if (!res.ok) throw new Error("Errore nel caricamento dello stato dal server");
+    
     const data = await res.json();
     
-    // Mappa la struttura del backend Python alla tua variabile DB locale
-    DB.users = data.users;
-    DB.giornata = data.state.giornata;
-    DB.mercatoAperto = data.state.mercato_aperto;
-    DB.eventi = data.state.eventi;
-    DB.profPunti = data.state.prof_punti;
+    // Assegnazione sicura dei dati ricevuti da Render/Supabase
+    DB.users = data.users || [];
+    DB.giornata = data.state ? data.state.giornata : 0;
+    DB.mercatoAperto = data.state ? data.state.mercato_aperto : true;
+    DB.eventi = data.state ? data.state.eventi : [];
+    DB.profPunti = data.state ? data.state.prof_punti : {};
 
-    // Rinfresca l'interfaccia grafica del gioco (se hai una funzione render() o go() chiamala qui)
-    if(session) go(currentTab); 
-  } catch(e) {
+    // Forziamo il rinfresco della grafica se l'utente è loggato
+    if (session && typeof renderAll === "function") {
+      renderAll();
+    }
+  } catch (e) {
     console.error("Impossibile connettersi al database su Render:", e);
   }
 }
 
-// Il salvataggio globale ora viene gestito dal server, svuotiamo la vecchia funzione locale
-function saveDB() { 
-  // Lasciata vuota perché salviamo tramite le singole API (buy, sell, simulate)
-}
-
-
-/* ==================== AUTH ==================== */
-function switchAuth(mode){
-  authMode = mode;
-  document.getElementById('tabLogin').classList.toggle('on', mode==='login');
-  document.getElementById('tabReg').classList.toggle('on', mode==='register');
-  document.getElementById('authBtn').textContent = mode==='login' ? 'ACCEDI' : 'CREA ACCOUNT';
-  hideError();
-}
-function showError(msg){
-  const e = document.getElementById('authError');
-  e.textContent = msg; e.style.display = 'block';
-}
-function hideError(){ document.getElementById('authError').style.display='none'; }
-
-async function doAuth(){
+// Sostituisci interamente la tua doAuth con questa
+async function doAuth() {
   const u = document.getElementById('authUser').value.trim();
   const p = document.getElementById('authPass').value;
-  if(!u || !p) return showError('Inserisci username e password.');
-  if(u.length < 3) return showError('Username troppo corto (min 3 caratteri).');
+  if (!u || !p) return showError('Inserisci username e password.');
+  if (u.length < 3) return showError('Username troppo corto (min 3 caratteri).');
 
   const endpoint = authMode === 'register' ? '/api/register' : '/api/login';
 
   try {
-    // Chiamata fetch verso il server Render
     const response = await fetch(`${BACKEND_URL}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: u, password: p }) // Rimosso btoa(), il server Python legge la password in chiaro o la gestisce lui
+      body: JSON.stringify({ username: u, password: p }) // Invio pulito senza btoa()
     });
+
+    // Leggiamo la risposta in modo sicuro
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      return showError("Il server ha risposto con un formato non valido. Controlla i log di Render.");
+    }
 
     const data = await response.json();
 
     if (!response.ok) {
-      return showError(data.error || 'Si è verificato un errore.');
+      return showError(data.error || 'Credenziali errate o problema sul server.');
     }
 
-    // Se l'autenticazione è riuscita
+    // Se l'autenticazione ha successo
     session = data.user.username;
     localStorage.setItem('fantaprof_session', session);
     
-    // Scarica i dati aggiornati del server prima di entrare nell'app
+    // Prima scarichiamo i dati aggiornati, poi entriamo nell'app
     await loadDB();
-    enterApp();
+    
+    // Controllo di sicurezza per evitare il crash di "m is undefined"
+    if (me()) {
+      enterApp();
+    } else {
+      showError("Utente autenticato ma non trovato nel database globale. Riprova.");
+    }
 
   } catch (error) {
-    showError('Impossibile stabilire una connessione con il server.');
+    showError('Impossibile stabilire una connessione col server.');
     console.error(error);
   }
 }
 
-function logout(){
-  session = null;
-  localStorage.removeItem('fantaprof_session');
-  document.getElementById('appView').style.display = 'none';
-  document.getElementById('authView').style.display = 'flex';
+// Sistema la funzione me() per renderla insensibile alle maiuscole/minuscole
+function me() { 
+  if (!session || !DB.users) return null;
+  return DB.users.find(x => x.username.toLowerCase() === session.toLowerCase()) || null; 
 }
-
-function me(){ return DB.users.find(x => x.username === session); }
 
 function enterApp(){
   document.getElementById('authView').style.display = 'none';
@@ -501,8 +493,12 @@ function go(tab){
   renderAll();
 }
 
-function renderAll(){
+function renderAll() {
   const m = me();
+  if (!m) {
+    // Se l'utente non è ancora caricato, evita di far crashare la pagina
+    return; 
+  }
   document.getElementById('chipCredits').textContent = m.credits + ' cr';
   renderHome(); renderMercato(); renderRosa(); renderClassifica(); initConfronto();
 }
