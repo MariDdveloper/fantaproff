@@ -500,7 +500,7 @@ function showError(msg){
 }
 function hideError(){ document.getElementById('authError').style.display='none'; }
 
-/* ==================== AUTH CONNESSO A SUPABASE (DIAGNOSTICA) ==================== */
+/* ==================== AUTH CONNESSO A SUPABASE (FORZATO) ==================== */
 function doAuth(){
   const u = document.getElementById('authUser').value.trim();
   const p = document.getElementById('authPass').value;
@@ -520,19 +520,30 @@ function doAuth(){
       punti: 0 
     };
 
+    // Usiamo le intestazioni corrette per forzare la scrittura e la risposta
+    const authHeaders = {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation" // Costringe Postgres a salvare e restituire la riga
+    };
+
     fetch(`${SUPABASE_URL}/rest/v1/users`, {
       method: "POST",
-      headers: headers,
+      headers: authHeaders,
       body: JSON.stringify(nuovoUtente)
     })
     .then(async (res) => {
-      // Se c'è un errore, leggiamo il messaggio dettagliato inviato da Supabase
       if(!res.ok) {
         const errorDetails = await res.json();
         console.error("Dettaglio Errore Supabase:", errorDetails);
         throw new Error(errorDetails.message || "Errore di database");
       }
       
+      const data = await res.json();
+      console.log("Utente salvato con successo su Supabase:", data);
+
+      // Aggiungiamo l'utente al DB locale e facciamo entrare il giocatore
       DB.users.push(nuovoUtente);
       session = u;
       localStorage.setItem('fantaprof_session', session);
@@ -553,6 +564,7 @@ function doAuth(){
     enterApp();
   }
 }
+
 
 function logout(){
   session = null;
