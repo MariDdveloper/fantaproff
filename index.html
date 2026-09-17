@@ -392,23 +392,30 @@ const PROFS = [
 const MAX_CREDITS = 50, MAX_ROSA = 4;
 
 const BONUS = [
-  ['Assenza (buco in orario)',20],['Ora di relax, niente spiegazione',15],
-  ['Parolaccia in classe',30],['Usa gergo giovanile',15],
-  ['Scrive alla lavagna',5],['Correzione immediata dei compiti',15],
-  ['Capriola sulla cattedra',200],['Fa un complimento alla classe',10],
-  ['Ci porta in gita',50],['Non funziona il computer',5],
-  ['Inciampa/cade',20],['Fa vedere un film',15],
-  ['Risata vera (non sorriso)',10],['Esercitazione nella sua ora',20],
-  ["Nomina l'esame di maturità",1],['Veste monocromo',10],
+  ['Assenza', 5],
+  ['Assenza per 2 settimane', 8],
+  ['No compiti', 3],
+  ["Scendere nell'aula giù", 1],
+  ['Lanciare sedia', 10],
+  ["Si siede sulla sedia di un alunno", 1],
+  ['In bagno', 0.5],
+  ['Parolaccia', 1],
+  ['Meme', 3]
 ];
+
 const MALUS = [
-  ['Sbaglia nome di uno studente',-10],['Arriva in ritardo',-10],
-  ['Verifica a sorpresa senza preavviso',-15],['Battuta da boomer',-15],
-  ['Mette una nota',-30],['Dimentica le verifiche da correggere',-20],
-  ['Apre porte e finestre a gennaio',-10],['Chiede la chiave della classe',-15],
-  ['Lavoro di gruppo obbligatorio',-15],['Litiga con un alunno',-50],
-  ['Piange in classe',-50],['Non manda nessuno in bagno',-15],
+  ['Nota disciplinare', -2],
+  ['Nota generica', -1],
+  ['Comunicazione', -0.5],
+  ['Interrogazione', -3],
+  ['Assegna più di un capitolo', -1],
+  ['Verifica', -5],
+  ['Alunno cacciato', -0.5],
+  ['Alunno cacciato con spinta', -1],
+  ['Non in bagno', -0.5],
+  ['Alla lavagna', -0.5]
 ];
+
 
 /* ========================================================================
    INTEGRAZIONE DIRETTA SUPABASE (Sostituisce il vecchio localStorage)
