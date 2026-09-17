@@ -507,12 +507,18 @@ function showError(msg){
 }
 function hideError(){ document.getElementById('authError').style.display='none'; }
 
-/* ==================== AUTH CONNESSO A SUPABASE (FORZATO) ==================== */
-function doAuth(){
+/* ==================== AUTH CONNESSO A SUPABASE (CORRETTO) ==================== */
+async function doAuth(){ // 1. Aggiunto "async" qui
   const u = document.getElementById('authUser').value.trim();
   const p = document.getElementById('authPass').value;
   if(!u || !p) return showError('Inserisci username e password.');
   if(u.length < 3) return showError('Username troppo corto (min 3 caratteri).');
+
+  // 2. FORZIAMO IL CARICAMENTO DEI DATI DA SUPABASE PRIMA DI VERIFICARE
+  // Questo garantisce che la lista utenti non sia vuota su nessun telefono!
+  showError('Verifica credenziali in corso...');
+  await loadDB(); 
+  hideError();
 
   if(authMode === 'register'){
     if(DB.users.some(x => x.username.toLowerCase() === u.toLowerCase())) {
@@ -526,6 +532,50 @@ function doAuth(){
       rosa: [], 
       punti: 0 
     };
+
+    const authHeaders = {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation"
+    };
+
+    fetch(`${SUPABASE_URL}/rest/v1/users`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify(nuovoUtente)
+    })
+    .then(async (res) => {
+      if(!res.ok) {
+        const errorDetails = await res.json();
+        console.error("Dettaglio Errore Supabase:", errorDetails);
+        throw new Error(errorDetails.message || "Errore di database");
+      }
+      
+      const data = await res.json();
+      console.log("Utente salvato con successo su Supabase:", data);
+
+      DB.users.push(nuovoUtente);
+      session = u;
+      localStorage.setItem('fantaprof_session', session);
+      enterApp();
+    })
+    .catch(err => {
+      console.error(err);
+      showError("Impossibile salvare l'utente: " + err.message);
+    });
+
+  } else {
+    // LOGIN (Ora eseguito dopo che loadDB() ha sicuramente riempito l'array)
+    const found = DB.users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === btoa(p));
+    if(!found) return showError('Credenziali errate o utente non trovato.');
+    
+    session = found.username;
+    localStorage.setItem('fantaprof_session', session);
+    enterApp();
+  }
+}
+
 
     // Usiamo le intestazioni corrette per forzare la scrittura e la risposta
     const authHeaders = {
